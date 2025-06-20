@@ -1,25 +1,47 @@
 ---
 title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+author: "Sara Asran"
+output: html_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 
-## Loading and preprocessing the data
+data <- read.csv("Assignment1/activity.csv")
+data$date <- as.Date(data$date)
 
+library(ggplot2)
+total_steps <- aggregate(steps ~ date, data, sum, na.rm = TRUE)
+hist(total_steps$steps, main = "Total Steps per Day", xlab = "Steps")
+mean(total_steps$steps)
+median(total_steps$steps)
 
+interval_avg <- aggregate(steps ~ interval, data, mean, na.rm = TRUE)
+plot(interval_avg$interval, interval_avg$steps, type = "l", 
+     main = "Average Steps per Interval", xlab = "Interval", ylab = "Steps")
+interval_avg[which.max(interval_avg$steps), ]
 
-## What is mean total number of steps taken per day?
+sum(is.na(data$steps))
 
+# Impute using mean for that interval
+library(dplyr)
+data_imputed <- data
+interval_means <- tapply(data$steps, data$interval, mean, na.rm = TRUE)
+data_imputed$steps <- ifelse(is.na(data_imputed$steps), 
+                             interval_means[as.character(data_imputed$interval)], 
+                             data_imputed$steps)
 
+# Histogram after imputation
+total_steps_imputed <- aggregate(steps ~ date, data_imputed, sum)
+hist(total_steps_imputed$steps, main = "Total Steps per Day (Imputed)", xlab = "Steps")
+mean(total_steps_imputed$steps)
+median(total_steps_imputed$steps)
 
-## What is the average daily activity pattern?
+data_imputed$day <- ifelse(weekdays(data_imputed$date) %in% c("Saturday", "Sunday"), "weekend", "weekday")
+data_imputed$day <- factor(data_imputed$day)
 
+library(lattice)
+avg_steps_day <- aggregate(steps ~ interval + day, data_imputed, mean)
+xyplot(steps ~ interval | day, data = avg_steps_day, type = "l",
+       layout = c(1, 2), main = "Activity Patterns: Weekday vs Weekend")
 
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
